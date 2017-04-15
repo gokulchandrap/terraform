@@ -191,6 +191,55 @@ func expandPersistentVolumeAccessModes(s []interface{}) []api.PersistentVolumeAc
 	return out
 }
 
+func flattenResourceQuotaSpec(in api.ResourceQuotaSpec) []interface{} {
+	out := make([]interface{}, 1)
+
+	m := make(map[string]interface{}, 0)
+	m["hard"] = flattenResourceList(in.Hard)
+	m["scopes"] = flattenResourceQuotaScopes(in.Scopes)
+
+	out[0] = m
+	return out
+}
+
+func expandResourceQuotaSpec(s []interface{}) (api.ResourceQuotaSpec, error) {
+	out := api.ResourceQuotaSpec{}
+	if len(s) < 1 {
+		return out, nil
+	}
+	m := s[0].(map[string]interface{})
+
+	if v, ok := m["hard"]; ok {
+		list, err := expandMapToResourceList(v.(map[string]interface{}))
+		if err != nil {
+			return out, err
+		}
+		out.Hard = list
+	}
+
+	if v, ok := m["scopes"]; ok {
+		out.Scopes = expandResourceQuotaScopes(v.(*schema.Set).List())
+	}
+
+	return out, nil
+}
+
+func flattenResourceQuotaScopes(in []api.ResourceQuotaScope) []string {
+	out := make([]string, len(in), len(in))
+	for _, scope := range in {
+		out = append(out, string(scope))
+	}
+	return out
+}
+
+func expandResourceQuotaScopes(s []interface{}) []api.ResourceQuotaScope {
+	out := make([]api.ResourceQuotaScope, len(s), len(s))
+	for _, scope := range s {
+		out = append(out, api.ResourceQuotaScope(scope.(string)))
+	}
+	return out
+}
+
 func newStringSet(f schema.SchemaSetFunc, in []string) *schema.Set {
 	var out = make([]interface{}, len(in), len(in))
 	for i, v := range in {
